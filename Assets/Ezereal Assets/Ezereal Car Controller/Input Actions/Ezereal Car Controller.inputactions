@@ -1,4 +1,5 @@
 {
+    "version": 1,
     "name": "Ezereal Car Controller",
     "maps": [
         {
@@ -135,6 +136,78 @@
                     "name": "Restart",
                     "type": "Button",
                     "id": "df6fff5d-c901-4e57-be3a-9302c349469e",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Gear1",
+                    "type": "Button",
+                    "id": "40bc93ca-3cf5-48fb-b17c-0525f817fae6",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Gear2",
+                    "type": "Button",
+                    "id": "e761e3c5-c3dd-4d37-93e2-98cbbe714ff5",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Gear3",
+                    "type": "Button",
+                    "id": "c638dc2a-ee56-4282-8958-8566ecc07e02",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Gear4",
+                    "type": "Button",
+                    "id": "07f98cf1-45a6-4a11-863f-fdf73fffd377",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Gear5",
+                    "type": "Button",
+                    "id": "75e93f0f-f73f-4a96-bd5a-38a8424d3d86",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Gear6",
+                    "type": "Button",
+                    "id": "197318ca-f209-45d5-9009-90e46e49bba8",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "GearNeutral",
+                    "type": "Button",
+                    "id": "6e0d6bfd-02aa-41fb-a23d-f30bc9c5e625",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "GearReverse",
+                    "type": "Button",
+                    "id": "b02a5cd9-e4cf-42c9-8c31-ae5f731103ee",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -381,6 +454,94 @@
                     "processors": "",
                     "groups": "",
                     "action": "Restart",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "68eacff4-9233-41f4-93c3-f4c4f42c6674",
+                    "path": "<Keyboard>/1",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Gear1",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "1c8f28b4-bb70-4b9e-958c-cb1aff58fe84",
+                    "path": "<Keyboard>/2",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Gear2",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "ac5ecab2-8751-496c-9a9e-b3852c6da211",
+                    "path": "<Keyboard>/3",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Gear3",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "7a4ce0f3-4477-45d8-8cb6-e1151cb62bbd",
+                    "path": "<Keyboard>/4",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Gear4",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "b6cd59dd-f1bc-4ec9-9af9-488825d1fe2a",
+                    "path": "<Keyboard>/5",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Gear5",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "1a02254e-f5c2-4253-8d11-d16a622b53f9",
+                    "path": "<Keyboard>/6",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Gear6",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "1d961bb6-230a-44a0-b731-60de194c32c3",
+                    "path": "<Keyboard>/n",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "GearNeutral",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "fa5d889e-f0fa-4a03-a81c-79cca94a5e19",
+                    "path": "<Keyboard>/m",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "GearReverse",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
