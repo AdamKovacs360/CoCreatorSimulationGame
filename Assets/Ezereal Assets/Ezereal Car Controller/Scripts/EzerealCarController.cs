@@ -12,6 +12,7 @@ namespace Ezereal
         [SerializeField] EzerealLightController ezerealLightController;
         [SerializeField] EzerealSoundController ezerealSoundController;
         [SerializeField] EzerealWheelFrictionController ezerealWheelFrictionController;
+        private PlayerInput _playerInput;
 
         [Header("References")]
 
@@ -41,6 +42,7 @@ namespace Ezereal
 
         [Header("Settings")]
         public bool isStarted = true;
+        public bool isUsingSteeringWheel = true;
 
         public float maxForwardSpeed = 50f; // 100f default
         public float maxReverseSpeed = 30f; // 30f default
@@ -62,7 +64,7 @@ namespace Ezereal
         [Header("Engine")]
         [SerializeField] float maxEngineRPM = 7000f; // Maximum engine RPM for the torque curve. Adjust as needed for different engines.
         [SerializeField] float idleEngineRPM = 800f; // Engine RPM at idle. Adjust as needed for different engines.
-        [SerializeField] float maxEngienTorque = 200f; // Maximum engine torque for scaling the torque curve. Adjust as needed for different engines.
+        [SerializeField] float maxEngienTorque = 50f; // Maximum engine torque for scaling the torque curve. Adjust as needed for different engines.
         private float engineRPM = 0f;
 
 
@@ -74,8 +76,13 @@ namespace Ezereal
         public ManualGears currentManualGear = ManualGears.Neutral;
         [SerializeField] bool isManual = false;
         [SerializeField] bool autoClucth = true; // If true, the car will automatically stall if the engine RPM is too low for the current gear. Only applies to manual transmission.
-        private float clutchValue = 0f;
+        private bool isClutchDown = false;
 
+        [Header("Engine Braking")]
+        [SerializeField] float engineBrakingStrength = 250f;
+        [SerializeField] float downshiftBrakingMultiplier = 2f;
+        float lastEngineRPM;
+        int lastGearIndex;
 
         [Header("Wheels")]
         [SerializeField] float wheelRadius = 0.35f; // Average wheel radius in meters. Adjust as needed for different cars.
@@ -85,6 +92,7 @@ namespace Ezereal
         [SerializeField] float currentSpeed = 0f;
         [SerializeField] float currentAccelerationValue = 0f;
         [SerializeField] float currentBrakeValue = 0f;
+        [SerializeField] float currentClutchValue = 0f;
         [SerializeField] float currentHandbrakeValue = 0f;
         [SerializeField] float currentSteerAngle = 0f;
         [SerializeField] float targetSteerAngle = 0f;
@@ -106,8 +114,7 @@ namespace Ezereal
             rearRightWheelCollider,
             };
 
-            wheelRadius = frontLeftWheelCollider.radius; // Set wheel radius based on the WheelCollider's radius. This assumes all wheels have the same radius. Adjust if your car has different sized wheels.
-
+            wheelRadius = frontLeftWheelCollider.radius; // Set wheel radius based on the WheelCollider's radius. This assumes all wheels have the same radius. Adjust if your car has different sized wheels.update
             if (ezerealLightController == null)
             {
                 Debug.LogWarning("EzerealLightController reference is missing. Ignore or attach one if you want to have light controls.");
@@ -147,6 +154,7 @@ namespace Ezereal
         private void Start()
         {
             EzerealSoundController ezerealSoundController = GetComponent<EzerealSoundController>();
+            _playerInput = GetComponent<PlayerInput>();
 
             // Set up the torque curve with example values. Adjust these keyframes to create different engine characteristics.
             torqueCurve = new AnimationCurve(new Keyframe(0, 0), new Keyframe(idleEngineRPM, 0.4f), new Keyframe(3500, 1f), new Keyframe(maxEngineRPM, 0.2f));
@@ -242,8 +250,74 @@ namespace Ezereal
 
         void OnAccelerate(InputValue accelerationValue)
         {
-            currentAccelerationValue = accelerationValue.Get<float>();
-            //Debug.Log("Acceleration: " + currentAccelerationValue.ToString());
+            if (isUsingSteeringWheel)
+            {
+                currentAccelerationValue = 1f - accelerationValue.Get<float>();
+            }
+            else
+            {
+                currentAccelerationValue = accelerationValue.Get<float>();
+            }
+        }
+
+        void OnBrake(InputValue brakeValue)
+        {
+
+            if (isUsingSteeringWheel)
+            {
+                currentBrakeValue = 1f - brakeValue.Get<float>();
+            }
+            else
+            {
+                currentBrakeValue = brakeValue.Get<float>();
+            }
+
+            if (isStarted && ezerealLightController != null)
+            {
+                if (currentBrakeValue > 0.05f)
+                {
+                    ezerealLightController.BrakeLightsOn();
+                }
+                else
+                {
+                    ezerealLightController.BrakeLightsOff();
+                }
+            }
+        }
+
+        void OnClutch(InputValue clutchValue)
+        {
+            if (isManual)
+            {
+                currentClutchValue = 1f - clutchValue.Get<float>();
+
+                // deadzones
+                if (currentClutchValue < 0.05f)
+                {
+                    currentClutchValue = 0f;
+                }
+                else if (currentClutchValue > 0.95f)
+                {
+                    currentClutchValue = 1f;
+                }
+
+                isClutchDown = currentClutchValue < 0.2f;
+
+                if (autoClucth)
+                {
+                    isClutchDown = true;
+                    return;
+                }
+
+                if (currentClutchValue < 0.5f)
+                {
+                    isClutchDown = true;
+                }
+                else
+                {
+                    isClutchDown = false;
+                }
+            }
         }
 
         float GetMaxSpeedForGear(float gearRation)
@@ -256,34 +330,84 @@ namespace Ezereal
 
         void ManualAcceleration()
         {
-            // if the car is not started, don't apply any torque
             if (!isStarted)
-            {
-                Debug.Log("Car is not started. Can't accelerate.");
                 return;
-            }
 
-            // Get current gear ratio
             float gearRatio = GetCurrentGearRatio();
 
-            // Engine Torque from curve
+            // Engine torque from torque curve
             float normalizedTorque = torqueCurve.Evaluate(engineRPM);
             float engineTorque = normalizedTorque * maxEngienTorque;
 
-            // Soft limiter near curve
-            float rpmLimiterFactor = 1f - Mathf.InverseLerp(maxEngineRPM - 500f, maxEngineRPM, engineRPM);
+            // Soft RPM limiter
+            float rpmLimiterFactor =
+                1f - Mathf.InverseLerp(maxEngineRPM - 200f, maxEngineRPM, engineRPM);
 
-            // Final Wheel Torque
-            float wheelTorque = engineTorque * gearRatio * finalDriveRatio;
-            wheelTorque *= currentAccelerationValue * rpmLimiterFactor;
+            // Low RPM bogging
+            float bogFactor =
+                Mathf.InverseLerp(idleEngineRPM, idleEngineRPM + 800f, engineRPM);
+
+            // Prevent unrealistic high gear launches
+            float drivetrainLoad =
+                Mathf.InverseLerp(0f, 15f, Mathf.Abs(rearLeftWheelCollider.rpm));
+
+            // 0 = clutch pressed
+            // 1 = clutch released
+            float clutchEngagement = currentClutchValue;
+
+            // MAIN DRIVE TORQUE
+            float wheelTorque =
+                engineTorque *
+                gearRatio *
+                finalDriveRatio *
+                currentAccelerationValue *
+                rpmLimiterFactor *
+                bogFactor *
+                drivetrainLoad *
+                clutchEngagement;
+
+            // =========================================================
+            // ENGINE BRAKING
+            // =========================================================
+
+            bool throttleReleased = currentAccelerationValue < 0.05f;
+
+            if (currentManualGear != ManualGears.Neutral &&
+                throttleReleased &&
+                clutchEngagement > 0.8f)
+            {
+                float wheelRPM =
+                    Mathf.Abs(rearLeftWheelCollider.rpm);
+
+                // Stronger braking at higher RPM
+                float rpmBrakeFactor =
+                    Mathf.InverseLerp(idleEngineRPM, maxEngineRPM, engineRPM);
+
+                float engineBrakeTorque =
+                    engineBrakingStrength *
+                    gearRatio *
+                    finalDriveRatio *
+                    rpmBrakeFactor;
+
+                // Downshift braking boost
+                if ((int)currentManualGear < lastGearIndex)
+                {
+                    engineBrakeTorque *= downshiftBrakingMultiplier;
+                }
+
+                // Apply opposite torque
+                wheelTorque -= engineBrakeTorque;
+            }
 
             ApplyTorque(wheelTorque);
+
             UpdateAccelerationSlider();
+
+            lastGearIndex = (int)currentManualGear;
         }
 
         void UpdateEngineRPM()
         {
-            // Set RPM to zero if the car is not started
             if (!isStarted)
             {
                 engineRPM = 0f;
@@ -291,21 +415,73 @@ namespace Ezereal
             }
 
             float gearRatio = GetCurrentGearRatio();
-            float wheelRPM = rearLeftWheelCollider.rpm;
 
-            // If the car is in neutral, calculate engine RPM based on acceleration input for a more responsive feel. Otherwise, calculate it based on wheel RPM and gear ratio.
+            // Wheel-connected RPM
+            float wheelRPMConnection =
+                Mathf.Abs(
+                    rearLeftWheelCollider.rpm *
+                    gearRatio *
+                    finalDriveRatio
+                );
+
+            // Free rev RPM from throttle
+            float targetFreeRPM =
+                idleEngineRPM +
+                ((maxEngineRPM - idleEngineRPM) * currentAccelerationValue);
+
+            // 0 = clutch pressed
+            // 1 = clutch released
+            float clutchEngagement = currentClutchValue;
+
             if (currentManualGear == ManualGears.Neutral)
             {
-                float targetRPM = idleEngineRPM + (maxEngineRPM - idleEngineRPM) * currentAccelerationValue;
-                engineRPM = Mathf.Lerp(engineRPM, targetRPM, Time.deltaTime * 5f);
+                // Neutral free rev
+                engineRPM = Mathf.Lerp(
+                    engineRPM,
+                    targetFreeRPM,
+                    Time.deltaTime * 4f
+                );
             }
             else
             {
-                engineRPM = Mathf.Abs(wheelRPM * gearRatio * finalDriveRatio);
+                // Blend wheel RPM and free RPM
+                float targetRPM =
+                    (wheelRPMConnection * clutchEngagement) +
+                    (targetFreeRPM * (1f - clutchEngagement));
+
+                // Engine inertia
+                float rpmChangeSpeed =
+                    clutchEngagement > 0.8f
+                    ? 8f
+                    : 3f;
+
+                engineRPM = Mathf.Lerp(
+                    engineRPM,
+                    targetRPM,
+                    Time.deltaTime * rpmChangeSpeed
+                );
             }
-            engineRPM = Mathf.Clamp(engineRPM, idleEngineRPM, maxEngineRPM);
-            curretnRPMMeterTMP_UI.text = engineRPM.ToString("F0");
-            currentRPMMeterTMP_Dashboard.text = engineRPM.ToString("F0");
+
+            // Stall protection
+            if (engineRPM < idleEngineRPM)
+            {
+                engineRPM = idleEngineRPM;
+            }
+
+            engineRPM = Mathf.Clamp(
+                engineRPM,
+                idleEngineRPM,
+                maxEngineRPM
+            );
+
+            // UI
+            curretnRPMMeterTMP_UI.text =
+                engineRPM.ToString("F0");
+
+            currentRPMMeterTMP_Dashboard.text =
+                engineRPM.ToString("F0");
+
+            lastEngineRPM = engineRPM;
         }
 
         float GetCurrentGearRatio()
@@ -347,6 +523,8 @@ namespace Ezereal
             }
         }
 
+        
+        ////*****This is the original accelaration method, which is now used for automatic transmission*****////
         void Acceleration()
         {
             if (isStarted)
@@ -361,7 +539,7 @@ namespace Ezereal
                     // (zero torque at top speed)
                     float currentMotorTorque = Mathf.Lerp(horsePower, 0, speedFactor);
 
-                    if (currentAccelerationValue > 0f && currentSpeed < maxForwardSpeed)
+                    if (currentAccelerationValue > 0.05f && currentSpeed < maxForwardSpeed)
                     {
                         if (driveType == DriveTypes.RWD)
                         {
@@ -428,24 +606,7 @@ namespace Ezereal
             }
         }
 
-        void OnBrake(InputValue brakeValue)
-        {
-            currentBrakeValue = brakeValue.Get<float>();
-            //Debug.Log("Brake:" + currentBrakeValue.ToString());
-
-            if (isStarted && ezerealLightController != null)
-            {
-                if (currentBrakeValue > 0)
-                {
-                    ezerealLightController.BrakeLightsOn();
-                }
-                else
-                {
-                    ezerealLightController.BrakeLightsOff();
-                }
-            }
-        }
-
+        // Apply brake torque
         void Braking()
         {
             if (currentBrakeValue > 0f)
@@ -594,6 +755,7 @@ namespace Ezereal
             }
         }
 
+        /// ****Gear metod for manula transition *****/////
         void SetGear(ManualGears gear)
         {
             currentManualGear = gear;
@@ -625,29 +787,162 @@ namespace Ezereal
                     break;
             }
         }
-        void OnGearReverse() => SetGear(ManualGears.Reverse);
-        void OnGearNeutral() => SetGear(ManualGears.Neutral);
-        void OnGear1() => SetGear(ManualGears.First);
-        void OnGear2() => SetGear(ManualGears.Second);
-        void OnGear3() => SetGear(ManualGears.Third);
-        void OnGear4() => SetGear(ManualGears.Fourth);
-        void OnGear5() => SetGear(ManualGears.Fifth);
-        void OnGear6() => SetGear(ManualGears.Sixth);
 
-
-        void StopCarOnTooHighGear()
+        void OnGearReverse(InputValue value)
         {
-            if (isStarted)
+            if (value.isPressed)
             {
-                if (currentManualGear == ManualGears.Neutral) return;
-
-                else if (engineRPM <= idleEngineRPM)
+                SetGear(ManualGears.Reverse);
+                if (!isClutchDown)
                 {
-                    if (!autoClucth)
-                    {
-                        Debug.LogWarning("Engine RPM too low for current gear, car engine stoped!");
-                        OnStopCar();
-                    }
+                    Debug.Log("Engine RPM too low for current gear, car engine stoped!");
+                    OnStopCar();
+                }
+            }
+            else if (isUsingSteeringWheel)
+            {
+                SetGear(ManualGears.Neutral);
+            }
+        }
+        void OnGearNeutral() => SetGear(ManualGears.Neutral);
+        void OnGear1(InputValue value)
+        {
+            if (value.isPressed)
+            {
+                SetGear(ManualGears.First);
+                if (!isClutchDown)
+                {
+                    Debug.Log("Engine RPM too low for current gear, car engine stoped!");
+                    OnStopCar();
+                }
+            }
+            else if (isUsingSteeringWheel)
+            {
+                SetGear(ManualGears.Neutral);
+            }
+        }
+
+        void OnGear2(InputValue value)
+        {
+            if (value.isPressed)
+            {
+                SetGear(ManualGears.Second);
+
+                if (!isClutchDown)
+                {
+                    Debug.Log("Engine RPM too low for current gear, car engine stoped!");
+                    OnStopCar();
+                }
+
+            }
+            else if (isUsingSteeringWheel)
+            {
+                SetGear(ManualGears.Neutral);
+            }
+        }
+
+        void OnGear3(InputValue value)
+        {
+            if (value.isPressed)
+            {
+                SetGear(ManualGears.Third);
+
+                if (!isClutchDown)
+                {
+                    Debug.Log("Engine RPM too low for current gear, car engine stoped!");
+                    OnStopCar();
+                }
+            }
+            else if (isUsingSteeringWheel)
+            {
+                SetGear(ManualGears.Neutral);
+            }
+        }
+        void OnGear4(InputValue value)
+        {
+            if (value.isPressed)
+            {
+                SetGear(ManualGears.Fourth);
+
+                if (!isClutchDown)
+                {
+                    Debug.Log("Engine RPM too low for current gear, car engine stoped!");
+                    OnStopCar();
+                }
+            }
+            else if (isUsingSteeringWheel)
+            {
+                SetGear(ManualGears.Neutral);
+            }
+        }
+        void OnGear5(InputValue value)
+        {
+            if (value.isPressed)
+            {
+                SetGear(ManualGears.Fifth);
+
+                if (!isClutchDown)
+                {
+                    Debug.Log("Engine RPM too low for current gear, car engine stoped!");
+                    OnStopCar();
+                }
+            }
+            else if (isUsingSteeringWheel)
+            {
+                SetGear(ManualGears.Neutral);
+            }
+        }
+        void OnGear6(InputValue value)
+        {
+            if (value.isPressed)
+            {
+                SetGear(ManualGears.Sixth);
+
+                if (!isClutchDown)
+                {
+                    Debug.Log("Engine RPM too low for current gear, car engine stoped!");
+                    OnStopCar();
+                }
+            }
+            else if (isUsingSteeringWheel)
+            {
+                SetGear(ManualGears.Neutral);
+            }
+        }
+
+
+
+        void StallingEngine()
+        {
+            if (!isStarted || currentManualGear == ManualGears.Neutral || isClutchDown) return;
+
+            // 1. Calculate what the engine RPM WOULD be based on wheel speed
+            float gearRatio = GetCurrentGearRatio();
+            float wheelRPM = rearLeftWheelCollider.rpm;
+            float calculatedEngineRPM = Mathf.Abs(wheelRPM * gearRatio * finalDriveRatio);
+
+            // 2. If the wheels are moving so slowly that the engine is forced below a "stall threshold"
+            float stallThreshold = idleEngineRPM;
+
+            if (calculatedEngineRPM < stallThreshold)
+            {
+                Debug.Log("Engine stalled: Load too high at low speed.");
+                OnStopCar();
+            }
+        }
+
+        void HandleClutchEngagement()
+        {
+            if (!isStarted || currentManualGear == ManualGears.Neutral) return;
+
+            // If the clutch is being engaged (let go)
+            if (!isClutchDown)
+            {
+                // If the car is barely moving and the player isn't giving it enough gas (RPM is low)
+                if (rearLeftWheelCollider.rpm < 50f && engineRPM < idleEngineRPM * 1.2f)
+                {
+                    Debug.Log("Stalled: Popped the clutch with no gas!");
+                    OnStopCar();
                 }
             }
         }
@@ -658,7 +953,8 @@ namespace Ezereal
 
             if (isManual)
             {
-                StopCarOnTooHighGear();
+                HandleClutchEngagement();
+               // StallingEngine();
                 ManualAcceleration();
             }
 
@@ -677,13 +973,10 @@ namespace Ezereal
 
             RotateSteeringWheel();
 
-            if
-                (
-                    Mathf.Abs(frontLeftWheelCollider.rpm) < stopThreshold &&
-                    Mathf.Abs(frontRightWheelCollider.rpm) < stopThreshold &&
-                    Mathf.Abs(rearLeftWheelCollider.rpm) < stopThreshold &&
-                    Mathf.Abs(rearRightWheelCollider.rpm) < stopThreshold
-                )
+            if (Mathf.Abs(frontLeftWheelCollider.rpm) < stopThreshold &&
+                Mathf.Abs(frontRightWheelCollider.rpm) < stopThreshold &&
+                Mathf.Abs(rearLeftWheelCollider.rpm) < stopThreshold &&
+                Mathf.Abs(rearRightWheelCollider.rpm) < stopThreshold)
             {
                 stationary = true;
             }
