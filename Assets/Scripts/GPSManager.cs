@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class GPSManager : MonoBehaviour
@@ -31,22 +32,27 @@ public class GPSManager : MonoBehaviour
         Destination = worldPos;
         HasDestination = true;
 
-        if (waypointMarker != null)
-        {
-            waypointMarker.position = worldPos + Vector3.up * 2f;
+        // Find closest graph nodes
+        RoadGraphNode start =
+            NavigationManager.Instance
+            .GetClosestNode(playerCar.position);
 
-            waypointMarker.gameObject.SetActive(true);
-        }
+        RoadGraphNode end =
+            NavigationManager.Instance
+            .GetClosestNode(worldPos);
 
-        RoadNode start = NavigationManager.Instance.GetClosestNode(playerCar.position);
+        // Calculate path
+        List<RoadGraphNode> path =
+            NavigationManager.Instance
+            .FindPath(start, end);
 
-        RoadNode end = NavigationManager.Instance.GetClosestNode(worldPos);
-
-        var path = NavigationManager.Instance.FindPath(start, end);
-
+        // Draw it
         routeDrawer.DrawRoute(path);
 
-        Debug.Log($"Destenation Set {Destination}");
+        Debug.Log(
+            path == null
+            ? "No path"
+            : "Path nodes: " + path.Count);
     }
 
     public void ClearDestination()

@@ -1,27 +1,28 @@
-using System.Collections.Generic;
 using UnityEngine;
+using System.Collections.Generic;
 
 public class NavigationManager : MonoBehaviour
 {
     public static NavigationManager Instance;
 
-    public List<RoadNode> allNodes = new List<RoadNode>();
+    public RoadGraphBuilder graphBuilder;
 
     void Awake()
     {
         Instance = this;
-
-        allNodes.AddRange(FindObjectsOfType<RoadNode>());
     }
 
-    public RoadNode GetClosestNode(Vector3 pos)
+    public RoadGraphNode GetClosestNode(Vector3 pos)
     {
-        RoadNode closest = null;
+        RoadGraphNode closest = null;
         float minDist = Mathf.Infinity;
 
-        foreach (RoadNode node in allNodes)
+        foreach (var node in graphBuilder.nodes)
         {
-            float dist = Vector3.Distance(pos, node.transform.position);
+            float dist =
+                Vector3.Distance(
+                    pos,
+                    node.position);
 
             if (dist < minDist)
             {
@@ -33,65 +34,93 @@ public class NavigationManager : MonoBehaviour
         return closest;
     }
 
-    public List<RoadNode> FindPath(RoadNode start, RoadNode goal)
+    public List<RoadGraphNode> FindPath(
+        RoadGraphNode start,
+        RoadGraphNode goal)
     {
-        List<RoadNode> open = new List<RoadNode>();
+        List<RoadGraphNode> open =
+            new List<RoadGraphNode>();
 
-        List<RoadNode> closed = new List<RoadNode>();
+        HashSet<RoadGraphNode> closed =
+            new HashSet<RoadGraphNode>();
 
-        Dictionary<RoadNode, RoadNode> cameFrom = new Dictionary<RoadNode, RoadNode>();
+        Dictionary<RoadGraphNode, RoadGraphNode>
+            cameFrom =
+            new Dictionary<RoadGraphNode, RoadGraphNode>();
 
-        Dictionary<RoadNode, float> gScore = new Dictionary<RoadNode, float>();
+        Dictionary<RoadGraphNode, float>
+            gScore =
+            new Dictionary<RoadGraphNode, float>();
 
         open.Add(start);
         gScore[start] = 0;
 
         while (open.Count > 0)
         {
-            RoadNode current = open[0];
+            RoadGraphNode current = open[0];
 
             foreach (var node in open)
             {
-                float nodeScore = gScore[node] + Vector3.Distance(node.transform.position, goal.transform.position);
+                float nodeScore =
+                    gScore[node] +
+                    Vector3.Distance(
+                        node.position,
+                        goal.position);
 
-                float currentScore = gScore[current] + Vector3.Distance(current.transform.position, goal.transform.position);
+                float currentScore =
+                    gScore[current] +
+                    Vector3.Distance(
+                        current.position,
+                        goal.position);
 
                 if (nodeScore < currentScore)
                     current = node;
             }
 
             if (current == goal)
-            {
-                return ReconstructPath(cameFrom, current);
-            }
+                return ReconstructPath(
+                    cameFrom,
+                    current);
 
             open.Remove(current);
             closed.Add(current);
 
-            foreach (var neighbour in current.connectedNodes)
+            foreach (var neighbour in current.neighbours)
             {
                 if (closed.Contains(neighbour))
                     continue;
 
-                float tentative = gScore[current] + Vector3.Distance(current.transform.position, neighbour.transform.position);
+                float tentative =
+                    gScore[current] +
+                    Vector3.Distance(
+                        current.position,
+                        neighbour.position);
 
                 if (!open.Contains(neighbour))
                     open.Add(neighbour);
 
-                if (gScore.ContainsKey(neighbour) && tentative >= gScore[neighbour])
+                if (gScore.ContainsKey(neighbour) &&
+                    tentative >= gScore[neighbour])
                     continue;
 
-                cameFrom[neighbour] = current;
-                gScore[neighbour] = tentative;
+                cameFrom[neighbour] =
+                    current;
+
+                gScore[neighbour] =
+                    tentative;
             }
         }
 
         return null;
     }
 
-    List<RoadNode> ReconstructPath(Dictionary<RoadNode, RoadNode> cameFrom, RoadNode current)
+    List<RoadGraphNode> ReconstructPath(
+        Dictionary<RoadGraphNode,
+        RoadGraphNode> cameFrom,
+        RoadGraphNode current)
     {
-        List<RoadNode> path = new List<RoadNode>();
+        List<RoadGraphNode> path =
+            new List<RoadGraphNode>();
 
         path.Add(current);
 
