@@ -9,7 +9,7 @@ public class RoadGraphBuilder : MonoBehaviour
 
     public List<RoadGraphNode> nodes = new List<RoadGraphNode>();
 
-    void Awake()
+    void Start()
     {
         BuildGraph();
     }
@@ -22,6 +22,18 @@ public class RoadGraphBuilder : MonoBehaviour
 
         foreach (var road in roads)
         {
+            if (road == null)
+            {
+                Debug.LogError("Found null RoadSpline");
+                continue;
+            }
+
+            if (road.spline == null)
+            {
+                Debug.LogError($"RoadSpline '{road.name}' has no spline assigned");
+                continue;
+            }
+
             RoadGraphNode firstNode = null;
             RoadGraphNode lastNode = null;
 
