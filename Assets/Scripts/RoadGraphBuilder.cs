@@ -5,6 +5,7 @@ using System.Collections.Generic;
 public class RoadGraphBuilder : MonoBehaviour
 {
     public float nodeSpacing = 10f;
+    public float junctionDistance = 8f;
 
     public List<RoadGraphNode> nodes = new List<RoadGraphNode>();
 
@@ -21,6 +22,9 @@ public class RoadGraphBuilder : MonoBehaviour
 
         foreach (var road in roads)
         {
+            RoadGraphNode firstNode = null;
+            RoadGraphNode lastNode = null;
+
             Spline spline = road.spline.Spline;
 
             RoadGraphNode previous = null;
@@ -40,18 +44,49 @@ public class RoadGraphBuilder : MonoBehaviour
                 node.position = pos;
                 nodes.Add(node);
 
+                if (i == 0)
+                {
+                    firstNode = node;
+                }
+
                 if (previous != null)
                 {
                     previous.neighbours.Add(node);
-                    node.neighbours.Add(previous);
                 }
 
                 previous = node;
+                lastNode = node;
             }
+
+            road.startNode = firstNode;
+            road.endNode = lastNode;
         }
 
-        Debug.Log("Generated nodes: " + nodes.Count);
+        ConnectRoadEndpoints(roads);
+    }
+    void ConnectRoadEndpoints(RoadSpline[] roads)
+    {
+        for (int i = 0; i < roads.Length; i++)
+        {
+            for (int j = i + 1; j < roads.Length; j++)
+            {
+                TryConnect(roads[i].startNode, roads[j].startNode);
+                TryConnect(roads[i].startNode, roads[j].endNode);
+                TryConnect(roads[i].endNode, roads[j].startNode);
+                TryConnect(roads[i].endNode, roads[j].endNode);
+            }
+        }
+    }
 
-        Debug.Log("Roads found: " + roads.Length);
+    void TryConnect(RoadGraphNode a, RoadGraphNode b)
+    {
+        if (a == null || b == null) return;
+
+        float dist = Vector3.Distance(a.position, b.position);
+
+        if (dist > junctionDistance) return;
+
+        a.neighbours.Add(b);
+        b.neighbours.Add(a);
     }
 }

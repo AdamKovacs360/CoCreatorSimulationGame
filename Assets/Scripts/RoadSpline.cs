@@ -3,5 +3,13 @@ using UnityEngine.Splines;
 
 public class RoadSpline : MonoBehaviour
 {
-    public SplineContainer spline;
+    [HideInInspector] public SplineContainer spline;
+
+    [HideInInspector] public RoadGraphNode startNode;
+    [HideInInspector] public RoadGraphNode endNode;
+
+    void Awake()
+    {
+        spline = GetComponent<SplineContainer>();
+    }
 }

@@ -19,10 +19,7 @@ public class NavigationManager : MonoBehaviour
 
         foreach (var node in graphBuilder.nodes)
         {
-            float dist =
-                Vector3.Distance(
-                    pos,
-                    node.position);
+            float dist = Vector3.Distance(pos, node.position);
 
             if (dist < minDist)
             {
@@ -34,23 +31,15 @@ public class NavigationManager : MonoBehaviour
         return closest;
     }
 
-    public List<RoadGraphNode> FindPath(
-        RoadGraphNode start,
-        RoadGraphNode goal)
+    public List<RoadGraphNode> FindPath(RoadGraphNode start, RoadGraphNode goal)
     {
-        List<RoadGraphNode> open =
-            new List<RoadGraphNode>();
+        List<RoadGraphNode> open = new List<RoadGraphNode>();
 
-        HashSet<RoadGraphNode> closed =
-            new HashSet<RoadGraphNode>();
+        HashSet<RoadGraphNode> closed = new HashSet<RoadGraphNode>();
 
-        Dictionary<RoadGraphNode, RoadGraphNode>
-            cameFrom =
-            new Dictionary<RoadGraphNode, RoadGraphNode>();
+        Dictionary<RoadGraphNode, RoadGraphNode> cameFrom = new Dictionary<RoadGraphNode, RoadGraphNode>();
 
-        Dictionary<RoadGraphNode, float>
-            gScore =
-            new Dictionary<RoadGraphNode, float>();
+        Dictionary<RoadGraphNode, float> gScore = new Dictionary<RoadGraphNode, float>();
 
         open.Add(start);
         gScore[start] = 0;
@@ -61,26 +50,16 @@ public class NavigationManager : MonoBehaviour
 
             foreach (var node in open)
             {
-                float nodeScore =
-                    gScore[node] +
-                    Vector3.Distance(
-                        node.position,
-                        goal.position);
+                float nodeScore = gScore[node] + Vector3.Distance(node.position, goal.position);
 
-                float currentScore =
-                    gScore[current] +
-                    Vector3.Distance(
-                        current.position,
-                        goal.position);
+                float currentScore = gScore[current] + Vector3.Distance(current.position, goal.position);
 
                 if (nodeScore < currentScore)
                     current = node;
             }
 
             if (current == goal)
-                return ReconstructPath(
-                    cameFrom,
-                    current);
+                return ReconstructPath(cameFrom, current);
 
             open.Remove(current);
             closed.Add(current);
@@ -90,37 +69,26 @@ public class NavigationManager : MonoBehaviour
                 if (closed.Contains(neighbour))
                     continue;
 
-                float tentative =
-                    gScore[current] +
-                    Vector3.Distance(
-                        current.position,
-                        neighbour.position);
+                float tentative = gScore[current] + Vector3.Distance(current.position, neighbour.position);
 
                 if (!open.Contains(neighbour))
                     open.Add(neighbour);
 
-                if (gScore.ContainsKey(neighbour) &&
-                    tentative >= gScore[neighbour])
+                if (gScore.ContainsKey(neighbour) && tentative >= gScore[neighbour])
                     continue;
 
-                cameFrom[neighbour] =
-                    current;
+                cameFrom[neighbour] = current;
 
-                gScore[neighbour] =
-                    tentative;
+                gScore[neighbour] = tentative;
             }
         }
 
         return null;
     }
 
-    List<RoadGraphNode> ReconstructPath(
-        Dictionary<RoadGraphNode,
-        RoadGraphNode> cameFrom,
-        RoadGraphNode current)
+    List<RoadGraphNode> ReconstructPath(Dictionary<RoadGraphNode, RoadGraphNode> cameFrom, RoadGraphNode current)
     {
-        List<RoadGraphNode> path =
-            new List<RoadGraphNode>();
+        List<RoadGraphNode> path = new List<RoadGraphNode>();
 
         path.Add(current);
 

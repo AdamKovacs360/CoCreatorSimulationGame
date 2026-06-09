@@ -3,7 +3,12 @@ using System.Collections.Generic;
 
 public class RouteDrawer : MonoBehaviour
 {
-    public LineRenderer line;
+    private LineRenderer line;
+
+    void Awake()
+    {
+        line = GetComponent<LineRenderer>();
+    }
 
     public void DrawRoute(List<RoadGraphNode> path)
     {
@@ -17,10 +22,7 @@ public class RouteDrawer : MonoBehaviour
 
         for (int i = 0; i < path.Count; i++)
         {
-            line.SetPosition(
-                i,
-                path[i].position + Vector3.up * 0.5f
-            );
+            line.SetPosition(i, path[i].position + Vector3.up * 0.5f);
         }
     }
 }
