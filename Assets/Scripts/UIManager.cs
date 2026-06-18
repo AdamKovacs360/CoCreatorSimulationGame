@@ -12,6 +12,10 @@ public class UIManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI missionFailedText;
     [SerializeField] private TextMeshProUGUI[] missionTexts;
     [SerializeField] private TextMeshProUGUI pressToContinueText;
+
+    //public GameObject GameCompleteUI;
+    //public GameObject GameOverUI;
+
     private int currentMissionIndex = 0;
     private float timer = 5f;
     private bool isTimeStopped = false;
@@ -101,6 +105,7 @@ public class UIManager : MonoBehaviour
     public void MissionFailed()
     {
         Time.timeScale = 0f; // Pause the game
+        //GameOverUI.SetActive(true);
         isTimeStopped = true;
         isGameOver = true;
 
