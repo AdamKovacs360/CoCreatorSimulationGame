@@ -28,26 +28,23 @@ public class CrashDetection : MonoBehaviour
 
     void OnCollisionEnter(Collision collision)
     {
-        if (collision.gameObject.CompareTag("Obstacle"))
+        if (isTimerRunning)
         {
-            if (isTimerRunning)
-            {
-                return; // Ignore further collisions while the timer is running
-            }
-
-            collisionCount++;
-
-            if (collisionCount >= MaxCollisions)
-            {
-                Debug.Log("Player has crashed too many times!");
-                uiManager.MissionFailed();
-                return;
-            }
-
-            uiManager.Crashed(MaxCollisions - collisionCount);
-            timeRemaining = 5f; // Reset the timer to 5 seconds
-            isTimerRunning = true;
-            Debug.Log("Player has crashed!");
+            return; // Ignore further collisions while the timer is running
         }
+
+        collisionCount++;
+
+        if (collisionCount >= MaxCollisions)
+        {
+            Debug.Log("Player has crashed too many times!");
+            uiManager.MissionFailed();
+            return;
+        }
+
+        uiManager.Crashed(MaxCollisions - collisionCount);
+        timeRemaining = 5f; // Reset the timer to 5 seconds
+        isTimerRunning = true;
+        Debug.Log("Player has crashed!");
     }
 }
