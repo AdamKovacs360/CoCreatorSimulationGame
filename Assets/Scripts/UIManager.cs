@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 
 public class UIManager : MonoBehaviour
 {
@@ -32,7 +33,7 @@ public class UIManager : MonoBehaviour
     {
         if (isTimer)
         {
-            timer -=Time.deltaTime;
+            timer -= Time.deltaTime;
             if (timer <= 0)
             {
                 isTimer = false;
@@ -43,21 +44,26 @@ public class UIManager : MonoBehaviour
 
         if (isTimeStopped && !isGameOver)
         {
-            if (Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame)
-            {
-                DisableAllMissionTexts();
-            }
-
-            if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
-            {
-                DisableAllMissionTexts();
-            }
-
-            if (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame)
+            if (AnyInputPressedThisFrame())
             {
                 DisableAllMissionTexts();
             }
         }
+    }
+
+    private bool AnyInputPressedThisFrame()
+    {
+        foreach (var device in InputSystem.devices)
+        {
+            foreach (var control in device.allControls)
+            {
+                if (control is ButtonControl button && button.wasPressedThisFrame)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     public void DisableAllMissionTexts()
