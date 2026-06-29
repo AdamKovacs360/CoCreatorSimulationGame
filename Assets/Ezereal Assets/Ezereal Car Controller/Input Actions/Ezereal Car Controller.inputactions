@@ -512,6 +512,17 @@
                 },
                 {
                     "name": "",
+                    "id": "ec0ceaff-8194-4cf7-9432-db11c1e8d7e9",
+                    "path": "<HID::Logitech G29 Driving Force Racing Wheel>/button24",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Restart",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
                     "id": "68eacff4-9233-41f4-93c3-f4c4f42c6674",
                     "path": "<Keyboard>/1",
                     "interactions": "",
