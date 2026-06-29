@@ -1,7 +1,9 @@
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
+using UnityEngine.XR.Interaction.Toolkit.AffordanceSystem.Receiver.Primitives;
 
 public class UIManager : MonoBehaviour
 {
@@ -13,15 +15,22 @@ public class UIManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI missionFailedText;
     [SerializeField] private TextMeshProUGUI[] missionTexts;
     [SerializeField] private TextMeshProUGUI pressToContinueText;
+    [SerializeField] private TextMeshProUGUI dialogueText;
 
     //public GameObject GameCompleteUI;
     //public GameObject GameOverUI;
 
     private int currentMissionIndex = 0;
     private float timer = 5f;
+    private float typingSpeed = 0.05f;
     private bool isTimeStopped = false;
     private bool isGameOver = false;
     private bool isTimer = false;
+
+    [TextArea]
+    public string dialogue;
+
+    
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -80,6 +89,7 @@ public class UIManager : MonoBehaviour
         missionFailedText.gameObject.SetActive(false);
         missionSuccessText.gameObject.SetActive(false);
         remainingLifeText.gameObject.SetActive(false);
+        dialogueText.gameObject.SetActive(false);
 
         pressToContinueText.text = "Press any key to continue...";
         pressToContinueText.gameObject.SetActive(false);
@@ -96,7 +106,9 @@ public class UIManager : MonoBehaviour
         isTimeStopped = true;
 
         missionCanvas.gameObject.SetActive(true);
-        missionStartText.gameObject.SetActive(true);
+        //missionStartText.gameObject.SetActive(true);
+        dialogueText.gameObject.SetActive(true);
+        StartCoroutine(TypeDialogue());
     }
 
     public void EndMission()
@@ -146,4 +158,17 @@ public class UIManager : MonoBehaviour
         pressToContinueText.text = "";
         isTimer = true;
     }
+    IEnumerator TypeDialogue()
+    {
+        dialogueText.text = "";
+
+        foreach (char letter in dialogue)
+        {
+            dialogueText.text += letter;
+            yield return new WaitForSeconds(typingSpeed);
+        }
+    }
+
 }
+
+
