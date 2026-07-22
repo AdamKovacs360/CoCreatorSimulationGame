@@ -5,10 +5,12 @@ using Unity.Profiling;
 public class GPSManager : MonoBehaviour
 {
     public static GPSManager Instance;
+    private Hospital hospital;
 
     private static readonly ProfilerMarker UpdateGPSMarker = new ProfilerMarker("GPS.UpdateGPS");
 
-    [SerializeField] private Transform firstDestination;
+    [SerializeField] private Transform[] Destinations;
+    private int CurrentMissionNum = 0;
     [SerializeField] private Transform hospitalDestination;
 
     private Transform waypointMarker;
@@ -34,7 +36,18 @@ public class GPSManager : MonoBehaviour
 
     void Start()
     {
-        SetDestination(firstDestination.position);
+        for (int i = 0; i < Destinations.Length; i++)
+        {
+            Destinations[i].gameObject.SetActive(false);
+        }
+
+        SetDestination();
+        
+        hospital = FindAnyObjectByType<Hospital>();
+        if (hospital == null)
+        {
+            Debug.LogError("Hospital not found in the scene. Please ensure there is a Hospital object present.");
+        }
     }
 
     void Update()
@@ -50,9 +63,16 @@ public class GPSManager : MonoBehaviour
         }
     }
 
-    public void SetDestination(Vector3 worldPos)
+    public void SetDestination()
     {
-        Destination = worldPos;
+        if (Destinations.Length == CurrentMissionNum)
+        {
+            Debug.Log("No more missions!");
+            hospital.SetMissionBoolToFalse(); // Reset the mission flag in the hospital
+            return;
+        }
+        Destination = Destinations[CurrentMissionNum].position;
+        Destinations[CurrentMissionNum].gameObject.SetActive(true);
         HasDestination = true;
         UpdateGPS();
     }
@@ -62,6 +82,7 @@ public class GPSManager : MonoBehaviour
         Destination = hospitalDestination.position;
         HasDestination = true;
         UpdateGPS();
+
     }
 
     private void UpdateGPS()
@@ -87,5 +108,17 @@ public class GPSManager : MonoBehaviour
 
         if (waypointMarker != null)
             waypointMarker.gameObject.SetActive(false);
+    }
+
+    public void IncreaseMissionNum()
+    {
+        if (Destinations.Length == CurrentMissionNum)
+        {
+            hospital.SetMissionBoolToFalse();
+            return;
+        }
+        CurrentMissionNum++;
+        hospital.SetPatientBoolToTrue();
+
     }
 }

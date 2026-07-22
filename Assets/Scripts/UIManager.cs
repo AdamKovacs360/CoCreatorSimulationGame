@@ -7,7 +7,6 @@ public class UIManager : MonoBehaviour
 {
     [SerializeField] private Canvas missionCanvas;
     [SerializeField] private TextMeshProUGUI remainingLifeText;
-    [SerializeField] private TextMeshProUGUI missionStartText;
     [SerializeField] private TextMeshProUGUI missionEndText;
     [SerializeField] private TextMeshProUGUI missionSuccessText;
     [SerializeField] private TextMeshProUGUI missionFailedText;
@@ -29,7 +28,7 @@ public class UIManager : MonoBehaviour
         isTimer = false;
         currentMissionIndex = 0;
         DisableAllMissionTexts();
-        StartMission();
+        ShowMissionText();
     }
 
     // Update is called once per frame
@@ -75,28 +74,18 @@ public class UIManager : MonoBehaviour
         Time.timeScale = 1f;
         isTimeStopped = false;
         missionCanvas.gameObject.SetActive(false);
-        missionStartText.gameObject.SetActive(false);
         missionEndText.gameObject.SetActive(false);
         missionFailedText.gameObject.SetActive(false);
         missionSuccessText.gameObject.SetActive(false);
         remainingLifeText.gameObject.SetActive(false);
 
         pressToContinueText.text = "Press any key to continue...";
-        pressToContinueText.gameObject.SetActive(false);
+        //pressToContinueText.gameObject.SetActive(false);
 
         foreach (var text in missionTexts)
         {
             text.gameObject.SetActive(false);
         }
-    }
-
-    public void StartMission()
-    {
-        Time.timeScale = 0f; // Pause the game
-        isTimeStopped = true;
-
-        missionCanvas.gameObject.SetActive(true);
-        missionStartText.gameObject.SetActive(true);
     }
 
     public void EndMission()
@@ -132,11 +121,16 @@ public class UIManager : MonoBehaviour
     }
     public void ShowMissionText()
     {
-            Time.timeScale = 0f; // Pause the game
-            isTimeStopped = true;
-            missionCanvas.gameObject.SetActive(true);
-            missionTexts[currentMissionIndex].gameObject.SetActive(true);
-            currentMissionIndex++;
+        if (missionTexts.Length <= currentMissionIndex)
+        {
+            Debug.LogWarning("Mission text numbers are not match with mission numbers!");
+            return;
+        }
+        Time.timeScale = 0f; // Pause the game
+        isTimeStopped = true;
+        missionCanvas.gameObject.SetActive(true);
+        missionTexts[currentMissionIndex].gameObject.SetActive(true);
+        currentMissionIndex++;
     }
     public void Crashed(int remaining)
     {

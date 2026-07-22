@@ -18,7 +18,7 @@ public class RoadGraphBuilder : MonoBehaviour
     {
         nodes.Clear();
 
-        RoadSpline[] roads = FindObjectsOfType<RoadSpline>();
+        RoadSpline[] roads = FindObjectsByType<RoadSpline>();
 
         foreach (var road in roads)
         {
